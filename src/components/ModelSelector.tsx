@@ -12,9 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { HuggingFaceSearch } from "@/components/HuggingFaceSearch";
 import { MODELS, QUANTIZATIONS, SAMPLE_PROMPTS } from "@/data/models";
-import { useSimulatorStore, useResolvedConfig } from "@/store/useSimulatorStore";
-import { formatNumber, groupBy } from "@/lib/utils";
+import { useSimulatorStore, useResolvedConfig, type ModelSource } from "@/store/useSimulatorStore";
+import { cn, formatNumber, groupBy } from "@/lib/utils";
 
 const modelGroups = groupBy(MODELS, (m) => m.family);
 
@@ -42,6 +43,34 @@ function Field({
   );
 }
 
+function SourceToggle() {
+  const { modelSource, setModelSource } = useSimulatorStore();
+
+  const options: { id: ModelSource; label: string }[] = [
+    { id: "curated", label: "Curated list" },
+    { id: "huggingface", label: "Hugging Face search" },
+  ];
+
+  return (
+    <div className="flex border border-(--line)">
+      {options.map((opt) => (
+        <button
+          key={opt.id}
+          onClick={() => setModelSource(opt.id)}
+          className={cn(
+            "flex-1 px-2 py-1.5 font-(family-name:--font-data) text-[12px] transition-colors",
+            modelSource === opt.id
+              ? "bg-(--panel-recessed) text-(--amber)"
+              : "text-(--ink-faint) hover:text-(--ink-dim)",
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function formatContext(tokens: number): string {
   if (tokens >= 1000) return `${formatNumber(tokens / 1000, tokens % 1000 === 0 ? 0 : 1)}k`;
   return `${tokens}`;
@@ -49,6 +78,7 @@ function formatContext(tokens: number): string {
 
 export function ModelSelector() {
   const {
+    modelSource,
     modelId,
     setModelId,
     quantId,
@@ -72,42 +102,54 @@ export function ModelSelector() {
         <CardDescription>Pick what runs, and how hard it gets pushed.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <Field tag="M1" label="Model">
-          <Select value={modelId} onValueChange={setModelId}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from(modelGroups.entries()).map(([group, items]) => (
-                <SelectGroup key={group}>
-                  <SelectLabel>{group}</SelectLabel>
-                  {items.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name} ({m.paramsB}B)
+        <Field tag="M1" label="Model source">
+          <SourceToggle />
+        </Field>
+
+        {modelSource === "curated" ? (
+          <>
+            <Field tag="M2" label="Model">
+              <Select value={modelId} onValueChange={setModelId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from(modelGroups.entries()).map(([group, items]) => (
+                    <SelectGroup key={group}>
+                      <SelectLabel>{group}</SelectLabel>
+                      {items.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.name} ({m.paramsB}B)
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field tag="M3" label="Quantization">
+              <Select value={quantId} onValueChange={setQuantId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {QUANTIZATIONS.map((q) => (
+                    <SelectItem key={q.id} value={q.id}>
+                      {q.name} (~{q.bitsPerWeight} bpw)
                     </SelectItem>
                   ))}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
+                </SelectContent>
+              </Select>
+            </Field>
+          </>
+        ) : (
+          <Field tag="M2" label="Hugging Face GGUF repo + quant">
+            <HuggingFaceSearch />
+          </Field>
+        )}
 
-        <Field tag="M2" label="Quantization">
-          <Select value={quantId} onValueChange={setQuantId}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {QUANTIZATIONS.map((q) => (
-                <SelectItem key={q.id} value={q.id}>
-                  {q.name} (~{q.bitsPerWeight} bpw)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-
-        <Field tag="M3" label="Context length" value={`${formatContext(contextLengthTokens)} tok`}>
+        <Field tag="M4" label="Context length" value={`${formatContext(contextLengthTokens)} tok`}>
           <Slider
             min={2048}
             max={131072}
@@ -122,7 +164,7 @@ export function ModelSelector() {
           </div>
         </Field>
 
-        <Field tag="M4" label="Sample prompt">
+        <Field tag="M5" label="Sample prompt">
           <Select value={samplePromptId} onValueChange={setSamplePromptId}>
             <SelectTrigger>
               <SelectValue />
@@ -138,7 +180,7 @@ export function ModelSelector() {
           <p className="mt-1 line-clamp-2 text-xs text-(--ink-faint)">{samplePrompt.promptText}</p>
         </Field>
 
-        <Field tag="M5" label="Output length target" value={`${outputTokens} tok`}>
+        <Field tag="M6" label="Output length target" value={`${outputTokens} tok`}>
           <Slider
             min={32}
             max={2048}

@@ -7,12 +7,23 @@ import {
   type GpuSpec,
   type PcieGen,
 } from "@/data/hardware";
-import { MODELS, QUANTIZATIONS, SAMPLE_PROMPTS } from "@/data/models";
+import { MODELS, QUANTIZATIONS, SAMPLE_PROMPTS, type ModelCategory, type ModelSpec, type QuantizationSpec } from "@/data/models";
+import type { HfModelDetail, HfQuantFile } from "@/lib/huggingface";
 
 interface CustomGpuOverrides {
   vramGB: number;
   bandwidthGBs: number;
   fp16TFLOPS: number;
+}
+
+export type ModelSource = "curated" | "huggingface";
+
+export interface HfSelection {
+  repoId: string;
+  architecture: string | null;
+  contextLength: number | null;
+  paramsB: number;
+  quant: HfQuantFile;
 }
 
 interface SimulatorState {
@@ -25,8 +36,10 @@ interface SimulatorState {
   ramCapacityGB: number;
   pcieGen: PcieGen;
 
+  modelSource: ModelSource;
   modelId: string;
   quantId: string;
+  hfSelection: HfSelection | null;
   contextLengthTokens: number;
   samplePromptId: string;
   outputTokens: number;
@@ -40,8 +53,10 @@ interface SimulatorState {
   setRamCapacityGB: (gb: number) => void;
   setPcieGen: (gen: PcieGen) => void;
 
+  setModelSource: (source: ModelSource) => void;
   setModelId: (id: string) => void;
   setQuantId: (id: string) => void;
+  setHfQuant: (detail: HfModelDetail, quant: HfQuantFile) => void;
   setContextLengthTokens: (tokens: number) => void;
   setSamplePromptId: (id: string) => void;
   setOutputTokens: (tokens: number) => void;
@@ -59,8 +74,10 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   ramCapacityGB: 32,
   pcieGen: "4.0",
 
+  modelSource: "curated",
   modelId: "llama-3.1-8b",
   quantId: "q4_k_m",
+  hfSelection: null,
   contextLengthTokens: 8192,
   samplePromptId: "python-script",
   outputTokens: SAMPLE_PROMPTS[0].outputTokenTarget,
@@ -74,8 +91,20 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   setRamCapacityGB: (gb) => set({ ramCapacityGB: gb }),
   setPcieGen: (gen) => set({ pcieGen: gen }),
 
-  setModelId: (id) => set({ modelId: id }),
-  setQuantId: (id) => set({ quantId: id }),
+  setModelSource: (source) => set({ modelSource: source }),
+  setModelId: (id) => set({ modelId: id, modelSource: "curated" }),
+  setQuantId: (id) => set({ quantId: id, modelSource: "curated" }),
+  setHfQuant: (detail, quant) =>
+    set({
+      modelSource: "huggingface",
+      hfSelection: {
+        repoId: detail.repoId,
+        architecture: detail.architecture,
+        contextLength: detail.contextLength,
+        paramsB: detail.paramsB,
+        quant,
+      },
+    }),
   setContextLengthTokens: (tokens) => set({ contextLengthTokens: tokens }),
   setSamplePromptId: (id) => {
     const prompt = SAMPLE_PROMPTS.find((p) => p.id === id);
@@ -93,6 +122,37 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   },
 }));
 
+function categorizeParams(paramsB: number): ModelCategory {
+  if (paramsB >= 150) return "flagship";
+  if (paramsB >= 40) return "large";
+  if (paramsB >= 15) return "medium";
+  return "small";
+}
+
+function repoDisplayName(repoId: string): string {
+  return repoId.split("/")[1] ?? repoId;
+}
+
+function buildHfModelSpec(sel: HfSelection): ModelSpec {
+  return {
+    id: `hf:${sel.repoId}`,
+    name: repoDisplayName(sel.repoId),
+    family: "Hugging Face",
+    paramsB: sel.paramsB,
+    category: categorizeParams(sel.paramsB),
+    description: `Fetched live from huggingface.co/${sel.repoId}${sel.architecture ? ` — ${sel.architecture} architecture` : ""}.`,
+  };
+}
+
+function buildHfQuantSpec(sel: HfSelection): QuantizationSpec {
+  return {
+    id: sel.quant.quant,
+    name: sel.quant.quant,
+    bitsPerWeight: sel.quant.bitsPerWeight,
+    description: `${sel.quant.sizeGB.toFixed(2)} GB actual GGUF file size on Hugging Face${sel.quant.fileCount > 1 ? ` (${sel.quant.fileCount} shards)` : ""}.`,
+  };
+}
+
 export function useResolvedConfig() {
   const state = useSimulatorStore();
   const gpu = state.getEffectiveGpu();
@@ -102,8 +162,11 @@ export function useResolvedConfig() {
   const cpu = CPUS.find((c) => c.id === state.cpuId) ?? CPUS[0];
   const ram = RAM_OPTIONS.find((r) => r.id === state.ramId) ?? RAM_OPTIONS[0];
   const pcie = PCIE_OPTIONS.find((p) => p.gen === state.pcieGen) ?? PCIE_OPTIONS[1];
-  const model = MODELS.find((m) => m.id === state.modelId) ?? MODELS[0];
-  const quant = QUANTIZATIONS.find((q) => q.id === state.quantId) ?? QUANTIZATIONS[0];
+
+  const useHf = state.modelSource === "huggingface" && state.hfSelection !== null;
+  const model = useHf ? buildHfModelSpec(state.hfSelection!) : MODELS.find((m) => m.id === state.modelId) ?? MODELS[0];
+  const quant = useHf ? buildHfQuantSpec(state.hfSelection!) : QUANTIZATIONS.find((q) => q.id === state.quantId) ?? QUANTIZATIONS[0];
+
   const samplePrompt = SAMPLE_PROMPTS.find((p) => p.id === state.samplePromptId) ?? SAMPLE_PROMPTS[0];
 
   return { gpu, secondGpu, cpu, ram, pcie, model, quant, samplePrompt };
