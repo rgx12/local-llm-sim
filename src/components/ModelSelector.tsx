@@ -1,6 +1,6 @@
 "use client";
 
-import { BrainCircuit } from "lucide-react";
+import { Layers } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -8,10 +8,25 @@ import { MODELS, QUANTIZATIONS, SAMPLE_PROMPTS } from "@/data/models";
 import { useSimulatorStore, useResolvedConfig } from "@/store/useSimulatorStore";
 import { formatNumber } from "@/lib/utils";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  tag,
+  label,
+  value,
+  children,
+}: {
+  tag: string;
+  label: string;
+  value?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-slate-400">{label}</label>
+      <label className="flex items-baseline justify-between gap-2 text-xs text-(--ink-dim)">
+        <span>
+          <span className="font-(family-name:--font-data) text-(--amber-dim)">{tag}</span> {label}
+        </span>
+        {value && <span className="font-(family-name:--font-data) text-(--ink)">{value}</span>}
+      </label>
       {children}
     </div>
   );
@@ -41,13 +56,13 @@ export function ModelSelector() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BrainCircuit className="h-4 w-4 text-emerald-400" /> Model &amp; Prompt
+        <CardTitle>
+          <Layers className="h-4 w-4 text-(--amber)" /> Model &amp; workload
         </CardTitle>
-        <CardDescription>Pick what you want to run and how hard you want to push it.</CardDescription>
+        <CardDescription>Pick what runs, and how hard it gets pushed.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <Field label="Model">
+        <Field tag="M1" label="Model">
           <Select value={modelId} onValueChange={setModelId}>
             <SelectTrigger>
               <SelectValue />
@@ -62,7 +77,7 @@ export function ModelSelector() {
           </Select>
         </Field>
 
-        <Field label="Quantization">
+        <Field tag="M2" label="Quantization">
           <Select value={quantId} onValueChange={setQuantId}>
             <SelectTrigger>
               <SelectValue />
@@ -77,7 +92,7 @@ export function ModelSelector() {
           </Select>
         </Field>
 
-        <Field label={`Context Length — ${formatContext(contextLengthTokens)} tokens`}>
+        <Field tag="M3" label="Context length" value={`${formatContext(contextLengthTokens)} tok`}>
           <Slider
             min={2048}
             max={131072}
@@ -85,14 +100,14 @@ export function ModelSelector() {
             value={[contextLengthTokens]}
             onValueChange={([v]) => setContextLengthTokens(v)}
           />
-          <div className="flex justify-between text-[10px] text-slate-500">
+          <div className="flex justify-between text-[10px] text-(--ink-faint)">
             <span>2k</span>
             <span>32k</span>
             <span>128k</span>
           </div>
         </Field>
 
-        <Field label="Sample Prompt">
+        <Field tag="M4" label="Sample prompt">
           <Select value={samplePromptId} onValueChange={setSamplePromptId}>
             <SelectTrigger>
               <SelectValue />
@@ -105,10 +120,10 @@ export function ModelSelector() {
               ))}
             </SelectContent>
           </Select>
-          <p className="mt-1 line-clamp-2 text-xs text-slate-500">{samplePrompt.promptText}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-(--ink-faint)">{samplePrompt.promptText}</p>
         </Field>
 
-        <Field label={`Output Length Target — ${outputTokens} tokens`}>
+        <Field tag="M5" label="Output length target" value={`${outputTokens} tok`}>
           <Slider
             min={32}
             max={2048}

@@ -18,8 +18,11 @@ import { runSimulation } from "@/engine/llmCalculator";
 import { useResolvedConfig, useSimulatorStore } from "@/store/useSimulatorStore";
 import { formatNumber } from "@/lib/utils";
 
-const SERIES_YOUR_BUILD = "#d95926";
-const SERIES_REFERENCE = "#3987e5";
+const SERIES_YOUR_BUILD = "#c87f08";
+const SERIES_REFERENCE = "#0e93b5";
+const GRID_LINE = "#2a342c";
+const AXIS_INK = "#8b9289";
+const TICK_INK = "#c9cec4";
 
 export function ComparisonChart() {
   const { ramCapacityGB } = useSimulatorStore();
@@ -72,8 +75,8 @@ export function ComparisonChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-emerald-400" /> Hardware Comparison
+        <CardTitle>
+          <BarChart3 className="h-4 w-4 text-(--amber)" /> Hardware comparison
         </CardTitle>
         <CardDescription>
           {model.name} ({quant.name}) generation speed across reference GPUs — same RAM/PCIe as your build.
@@ -83,32 +86,40 @@ export function ComparisonChart() {
         <div className="h-[320px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24, top: 4, bottom: 4 }}>
-              <CartesianGrid horizontal={false} stroke="#2c2c2a" />
+              <CartesianGrid horizontal={false} stroke={GRID_LINE} />
               <XAxis
                 type="number"
-                stroke="#898781"
-                tick={{ fill: "#898781", fontSize: 11 }}
-                label={{ value: "tok/s", position: "insideBottomRight", fill: "#898781", fontSize: 11, offset: -2 }}
+                stroke={AXIS_INK}
+                tick={{ fill: AXIS_INK, fontSize: 11, fontFamily: "var(--font-data)" }}
+                label={{
+                  value: "tok/s",
+                  position: "insideBottomRight",
+                  fill: AXIS_INK,
+                  fontSize: 11,
+                  offset: -2,
+                }}
               />
               <YAxis
                 type="category"
                 dataKey="name"
                 width={170}
-                stroke="#898781"
-                tick={{ fill: "#c3c2b7", fontSize: 11 }}
+                stroke={AXIS_INK}
+                tick={{ fill: TICK_INK, fontSize: 11, fontFamily: "var(--font-data)" }}
               />
               <Tooltip
-                cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                cursor={{ fill: "rgba(233,230,220,0.04)" }}
                 contentStyle={{
-                  background: "#1a1a19",
-                  border: "1px solid #383835",
-                  borderRadius: 8,
+                  background: "#0d1310",
+                  border: "1px solid #414f43",
+                  borderRadius: 0,
                   fontSize: 12,
-                  color: "#ffffff",
+                  fontFamily: "var(--font-data)",
+                  color: "#e9e6dc",
                 }}
+                labelStyle={{ color: "#8b9289" }}
                 formatter={(value) => [`${formatNumber(Number(value), 1)} tok/s`, "Speed"]}
               />
-              <Bar dataKey="tokPerSec" radius={[0, 4, 4, 0]} maxBarSize={22}>
+              <Bar dataKey="tokPerSec" radius={0} maxBarSize={16}>
                 {data.map((entry) => (
                   <Cell
                     key={entry.name}
@@ -119,14 +130,14 @@ export function ComparisonChart() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
+        <div className="mt-2 flex items-center gap-4 text-xs text-(--ink-dim)">
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: SERIES_REFERENCE }} />
+            <span className="inline-block h-2 w-2" style={{ background: SERIES_REFERENCE }} />
             Reference GPU
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: SERIES_YOUR_BUILD }} />
-            Your Build
+            <span className="inline-block h-2 w-2" style={{ background: SERIES_YOUR_BUILD }} />
+            Your build
           </span>
         </div>
       </CardContent>

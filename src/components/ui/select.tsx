@@ -15,14 +15,14 @@ export function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        "flex w-full items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-emerald-500 data-[placeholder]:text-slate-500",
+        "flex w-full items-center justify-between gap-2 border border-(--line) bg-(--panel-recessed) px-3 py-2 font-(family-name:--font-data) text-[13px] text-(--ink) outline-none hover:border-(--line-bright) focus-visible:border-(--amber) data-[placeholder]:text-(--ink-faint)",
         className,
       )}
       {...props}
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDown className="h-4 w-4 text-slate-400" />
+        <ChevronDown className="h-3.5 w-3.5 text-(--ink-dim)" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -33,7 +33,7 @@ export function SelectContent({ className, children, ...props }: SelectPrimitive
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         className={cn(
-          "z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-xl",
+          "z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden border border-(--line-bright) bg-(--panel) shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]",
           className,
         )}
         position="popper"
@@ -50,7 +50,7 @@ export function SelectItem({ className, children, ...props }: SelectPrimitive.Se
   return (
     <SelectPrimitive.Item
       className={cn(
-        "relative flex cursor-pointer select-none items-center rounded-md py-2 pl-7 pr-2 text-sm text-slate-200 outline-none data-[highlighted]:bg-slate-800 data-[state=checked]:text-emerald-400",
+        "relative flex cursor-pointer select-none items-center py-2 pl-7 pr-2 font-(family-name:--font-data) text-[13px] text-(--ink-dim) outline-none data-[highlighted]:bg-(--panel-recessed) data-[highlighted]:text-(--ink) data-[state=checked]:text-(--amber)",
         className,
       )}
       {...props}

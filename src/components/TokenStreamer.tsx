@@ -5,7 +5,7 @@ import { Play, Square, Terminal } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { SimulationResult } from "@/engine/llmCalculator";
-import { getSpeedTier, SPEED_TIER_LABELS, type SpeedTier } from "@/engine/llmCalculator";
+import { getSpeedTier, SPEED_TIER_LABELS } from "@/engine/llmCalculator";
 import { cn, formatNumber } from "@/lib/utils";
 import type { SamplePrompt } from "@/data/models";
 
@@ -80,48 +80,45 @@ function buildOutputTokens(promptId: string, count: number): string[] {
   return tokens.slice(0, count);
 }
 
-const GAUGE_SEGMENTS: { tier: SpeedTier; from: number; to: number; className: string }[] = [
-  { tier: "slow", from: 0, to: 5, className: "bg-red-500" },
-  { tier: "usable", from: 5, to: 15, className: "bg-amber-500" },
-  { tier: "fast", from: 15, to: 40, className: "bg-emerald-500" },
-  { tier: "blazing", from: 40, to: 80, className: "bg-sky-400" },
-];
+const METER_TICKS = 36;
+const METER_MAX = 80;
+const ZONE_BOUNDS = [5, 15, 40, METER_MAX];
 
-function gaugePositionPercent(tokPerSec: number): number {
-  if (tokPerSec <= 0) return 0;
-  for (const seg of GAUGE_SEGMENTS) {
-    if (tokPerSec <= seg.to) {
-      const segIndex = GAUGE_SEGMENTS.indexOf(seg);
-      const within = (tokPerSec - seg.from) / (seg.to - seg.from);
-      return segIndex * 25 + within * 25;
-    }
-  }
-  return 100;
+function zoneColorForValue(v: number): string {
+  if (v <= ZONE_BOUNDS[0]) return "var(--status-critical)";
+  if (v <= ZONE_BOUNDS[1]) return "var(--status-warn)";
+  if (v <= ZONE_BOUNDS[2]) return "var(--amber)";
+  return "var(--status-good)";
 }
 
 function SpeedGauge({ tokensPerSecond }: { tokensPerSecond: number }) {
   const tier = getSpeedTier(tokensPerSecond);
-  const pointerPct = Math.min(gaugePositionPercent(tokensPerSecond), 100);
+  const litTicks = Math.round(Math.min(tokensPerSecond, METER_MAX) / METER_MAX * METER_TICKS);
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative h-3 w-full">
-        <div
-          className="absolute -top-4 -translate-x-1/2 text-[10px] font-semibold text-slate-200 transition-all duration-300"
-          style={{ left: `${pointerPct}%` }}
-        >
-          ▼
-        </div>
+      <div className="flex h-6 items-end gap-[3px]">
+        {Array.from({ length: METER_TICKS }).map((_, i) => {
+          const tickValue = ((i + 1) / METER_TICKS) * METER_MAX;
+          const lit = i < litTicks;
+          const color = zoneColorForValue(tickValue);
+          return (
+            <div
+              key={i}
+              className="flex-1 transition-all duration-150"
+              style={{
+                height: lit ? `${40 + (i / METER_TICKS) * 60}%` : "30%",
+                background: lit ? color : "var(--line)",
+                boxShadow: lit ? `0 0 5px -1px ${color}` : "none",
+              }}
+            />
+          );
+        })}
       </div>
-      <div className="flex h-2.5 w-full overflow-hidden rounded-full">
-        {GAUGE_SEGMENTS.map((seg) => (
-          <div key={seg.tier} className={cn("h-full flex-1 opacity-80", seg.className)} />
-        ))}
-      </div>
-      <div className="flex justify-between text-[10px] text-slate-500">
-        {GAUGE_SEGMENTS.map((seg) => (
-          <span key={seg.tier} className={cn(tier === seg.tier && "font-semibold text-slate-200")}>
-            {SPEED_TIER_LABELS[seg.tier]}
+      <div className="flex justify-between text-[10px] text-(--ink-faint)">
+        {(["slow", "usable", "fast", "blazing"] as const).map((t) => (
+          <span key={t} className={cn(tier === t && "text-(--ink)")}>
+            {SPEED_TIER_LABELS[t]}
           </span>
         ))}
       </div>
@@ -193,27 +190,28 @@ export function TokenStreamer({ result, samplePrompt, outputTokens }: TokenStrea
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Terminal className="h-4 w-4 text-emerald-400" /> Live Inference Preview
+        <CardTitle>
+          <Terminal className="h-4 w-4 text-(--amber)" /> Live inference preview
         </CardTitle>
-        <CardDescription>Streams the response at your simulated tokens/sec rate.</CardDescription>
+        <CardDescription>Streams the response at the simulated tokens/sec rate.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="min-h-[220px] rounded-lg border border-slate-800 bg-black/70 p-3 font-mono text-[13px] leading-relaxed text-emerald-300 shadow-inner">
-          <div className="mb-2 whitespace-pre-wrap text-slate-400">
-            <span className="text-slate-500">$ </span>
+        <div className="relative min-h-[220px] overflow-hidden border border-(--line) bg-(--panel-recessed) p-3 font-(family-name:--font-data) text-[13px] leading-relaxed text-(--amber)">
+          <div className="crt-scanlines" />
+          <div className="relative mb-2 whitespace-pre-wrap text-(--ink-dim)">
+            <span className="text-(--ink-faint)">{"› "}</span>
             {samplePrompt.promptText}
           </div>
           {isOom ? (
-            <div className="text-red-400">
-              CUDA error: out of memory — model does not fit in available VRAM + system RAM.
+            <div className="relative text-(--status-critical)">
+              alloc error: model does not fit in available VRAM + system RAM.
             </div>
           ) : (
-            <div className="whitespace-pre-wrap">
-              {phase === "ttft" && <span className="text-slate-500">waiting for first token…</span>}
+            <div className="relative whitespace-pre-wrap">
+              {phase === "ttft" && <span className="text-(--ink-faint)">awaiting first token…</span>}
               {visibleTokens.join("")}
               {(phase === "streaming" || phase === "ttft") && (
-                <span className="ml-0.5 inline-block h-4 w-2 animate-pulse bg-emerald-400 align-middle" />
+                <span className="ml-0.5 inline-block h-4 w-2 animate-pulse bg-(--amber) align-middle" />
               )}
             </div>
           )}
@@ -226,10 +224,10 @@ export function TokenStreamer({ result, samplePrompt, outputTokens }: TokenStrea
             </Button>
           ) : (
             <Button onClick={run} disabled={isOom} className="w-full sm:w-auto">
-              <Play className="h-4 w-4" /> Run Benchmark Simulation
+              <Play className="h-4 w-4" /> Run benchmark simulation
             </Button>
           )}
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-(--ink-faint)">
             {phase === "done" && `Generated ${tokens.length} tokens.`}
             {phase === "idle" && !isOom && "Ready to simulate."}
           </div>
@@ -237,8 +235,8 @@ export function TokenStreamer({ result, samplePrompt, outputTokens }: TokenStrea
 
         <div>
           <div className="mb-2 flex items-baseline justify-between">
-            <span className="text-xs font-medium text-slate-400">Speed Meter</span>
-            <span className="text-xs font-semibold text-slate-200">
+            <span className="text-xs text-(--ink-dim)">Speed meter</span>
+            <span className="font-(family-name:--font-data) text-xs font-medium text-(--ink)">
               {formatNumber(result.tokensPerSecond, 1)} tok/s
             </span>
           </div>

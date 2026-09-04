@@ -3,10 +3,10 @@ import { type ButtonHTMLAttributes, forwardRef } from "react";
 
 const variantClasses = {
   primary:
-    "bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-[0_0_20px_-4px_rgba(16,185,129,0.6)]",
-  secondary: "bg-slate-800 text-slate-100 hover:bg-slate-700",
-  ghost: "bg-transparent text-slate-300 hover:bg-slate-800",
-  outline: "border border-slate-700 text-slate-200 hover:bg-slate-800",
+    "bg-(--amber) text-(--amber-ink) hover:bg-[#ffc633] active:translate-y-px shadow-[0_0_0_1px_var(--amber-dim),0_0_18px_-4px_rgba(255,179,0,0.55)]",
+  secondary: "bg-(--panel-recessed) text-(--ink) border border-(--line) hover:border-(--line-bright)",
+  ghost: "bg-transparent text-(--ink-dim) hover:text-(--ink) hover:bg-(--panel-recessed)",
+  outline: "border border-(--line) text-(--ink) hover:border-(--amber-dim)",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -19,7 +19,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+          "inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
           variantClasses[variant],
           className,
         )}

@@ -1,30 +1,32 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const displayFont = Space_Grotesk({
+  variable: "--font-display",
   subsets: ["latin"],
+  weight: ["400", "500", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const dataFont = JetBrains_Mono({
+  variable: "--font-data",
   subsets: ["latin"],
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "LLM Build Sim — Can My PC Run It?",
+  title: "LLM-BENCH — Local Inference Readout Unit",
   description:
-    "Simulate local LLM inference speed, VRAM fit, and time-to-first-token for any GPU/CPU/RAM combination.",
+    "Configure a GPU/CPU/RAM build and read its local LLM inference numbers: tokens/sec, VRAM fit, and time-to-first-token.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${displayFont.variable} ${dataFont.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100">{children}</body>
+      <body className="min-h-full flex flex-col bg-(--board) text-(--ink)">{children}</body>
     </html>
   );
 }

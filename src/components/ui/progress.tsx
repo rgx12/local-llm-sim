@@ -4,16 +4,24 @@ interface ProgressProps {
   value: number;
   className?: string;
   barClassName?: string;
+  segments?: number;
 }
 
-export function Progress({ value, className, barClassName }: ProgressProps) {
+export function Progress({ value, className, barClassName, segments = 24 }: ProgressProps) {
   const clamped = Math.min(Math.max(value, 0), 100);
+  const litSegments = Math.round((clamped / 100) * segments);
+
   return (
-    <div className={cn("h-2.5 w-full overflow-hidden rounded-full bg-slate-800", className)}>
-      <div
-        className={cn("h-full rounded-full bg-emerald-500 transition-all duration-500", barClassName)}
-        style={{ width: `${clamped}%` }}
-      />
+    <div className={cn("flex h-3 w-full gap-[2px]", className)} aria-hidden>
+      {Array.from({ length: segments }).map((_, i) => (
+        <div
+          key={i}
+          className={cn(
+            "flex-1 border border-(--line) bg-(--panel-recessed) transition-colors duration-300",
+            i < litSegments && cn("bg-(--amber) border-(--amber-dim)", barClassName),
+          )}
+        />
+      ))}
     </div>
   );
 }

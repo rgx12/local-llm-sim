@@ -2,25 +2,35 @@ import { cn } from "@/lib/utils";
 import type { HTMLAttributes } from "react";
 
 const toneClasses = {
-  neutral: "bg-slate-800 text-slate-300",
-  success: "bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/30",
-  warning: "bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/30",
-  danger: "bg-red-500/15 text-red-400 ring-1 ring-red-500/30",
+  neutral: "border-(--line) text-(--ink-dim)",
+  good: "border-(--status-good)/40 text-(--status-good)",
+  warn: "border-(--status-warn)/40 text-(--status-warn)",
+  critical: "border-(--status-critical)/40 text-(--status-critical)",
+};
+
+const dotClasses = {
+  neutral: "bg-(--ink-dim)",
+  good: "bg-(--status-good) shadow-[0_0_6px_0_var(--status-good)]",
+  warn: "bg-(--status-warn) shadow-[0_0_6px_0_var(--status-warn)]",
+  critical: "bg-(--status-critical) shadow-[0_0_6px_0_var(--status-critical)]",
 };
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   tone?: keyof typeof toneClasses;
 }
 
-export function Badge({ className, tone = "neutral", ...props }: BadgeProps) {
+export function Badge({ className, tone = "neutral", children, ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center gap-1.5 border px-2 py-1 font-(family-name:--font-data) text-[11px] font-medium",
         toneClasses[tone],
         className,
       )}
       {...props}
-    />
+    >
+      <span className={cn("h-1.5 w-1.5 rounded-full", dotClasses[tone])} />
+      {children}
+    </span>
   );
 }
