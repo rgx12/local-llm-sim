@@ -6,6 +6,19 @@ import { cn } from "@/lib/utils";
 
 export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
+export const SelectGroup = SelectPrimitive.Group;
+
+export function SelectLabel({ className, ...props }: SelectPrimitive.SelectLabelProps) {
+  return (
+    <SelectPrimitive.Label
+      className={cn(
+        "px-2 pt-2.5 pb-1 font-(family-name:--font-data) text-[11px] text-(--amber-dim)",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 
 export function SelectTrigger({
   className,

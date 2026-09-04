@@ -2,18 +2,61 @@
 
 import { Cpu, MemoryStick, SlidersHorizontal, PlusCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   CPUS,
   GPUS,
   PCIE_OPTIONS,
   RAM_CAPACITY_OPTIONS_GB,
   RAM_OPTIONS,
+  type CpuSpec,
+  type GpuSpec,
   type PcieGen,
+  type RamSpec,
 } from "@/data/hardware";
 import { resolveGpuPool } from "@/engine/llmCalculator";
 import { useSimulatorStore, useResolvedConfig } from "@/store/useSimulatorStore";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, groupBy } from "@/lib/utils";
+
+const segmentLabel: Record<string, string> = {
+  consumer: "Consumer",
+  workstation: "Workstation",
+  datacenter: "Datacenter",
+  desktop: "Desktop",
+  hedt: "HEDT / Workstation",
+  server: "Server",
+};
+
+function gpuGroupLabel(g: GpuSpec): string {
+  if (g.vendor === "apple") return "Apple Silicon";
+  if (g.vendor === "custom") return "Custom";
+  if (g.vendor === "intel") return "Intel Arc";
+  const vendor = g.vendor === "nvidia" ? "NVIDIA" : "AMD";
+  return `${vendor} ${segmentLabel[g.segment ?? "consumer"]}`;
+}
+
+function cpuGroupLabel(c: CpuSpec): string {
+  if (c.vendor === "apple") return "Apple Silicon";
+  const vendor = c.vendor === "intel" ? "Intel" : "AMD";
+  return `${vendor} ${segmentLabel[c.segment]}`;
+}
+
+function ramGroupLabel(r: RamSpec): string {
+  if (r.type === "Unified") return "Apple Unified Memory";
+  return r.type;
+}
+
+const gpuGroups = groupBy(GPUS, gpuGroupLabel);
+const cpuGroups = groupBy(CPUS, cpuGroupLabel);
+const ramGroups = groupBy(RAM_OPTIONS, ramGroupLabel);
 
 function Field({ tag, label, children }: { tag: string; label: string; children: React.ReactNode }) {
   return (
@@ -69,11 +112,16 @@ export function HardwareSelector() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {GPUS.map((g) => (
-                <SelectItem key={g.id} value={g.id}>
-                  {g.name}
-                  {!g.isCustom && ` — ${g.vramGB}GB, ${g.bandwidthGBs} GB/s`}
-                </SelectItem>
+              {Array.from(gpuGroups.entries()).map(([group, items]) => (
+                <SelectGroup key={group}>
+                  <SelectLabel>{group}</SelectLabel>
+                  {items.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.name}
+                      {!g.isCustom && ` — ${g.vramGB}GB, ${g.bandwidthGBs} GB/s`}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               ))}
             </SelectContent>
           </Select>
@@ -130,11 +178,20 @@ export function HardwareSelector() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {GPUS.filter((g) => !g.isCustom).map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    {g.name} — {g.vramGB}GB, {g.bandwidthGBs} GB/s
-                  </SelectItem>
-                ))}
+                {Array.from(gpuGroups.entries()).map(([group, items]) => {
+                  const selectable = items.filter((g) => !g.isCustom);
+                  if (selectable.length === 0) return null;
+                  return (
+                    <SelectGroup key={group}>
+                      <SelectLabel>{group}</SelectLabel>
+                      {selectable.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>
+                          {g.name} — {g.vramGB}GB, {g.bandwidthGBs} GB/s
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  );
+                })}
               </SelectContent>
             </Select>
           </Field>
@@ -148,10 +205,15 @@ export function HardwareSelector() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {CPUS.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
+              {Array.from(cpuGroups.entries()).map(([group, items]) => (
+                <SelectGroup key={group}>
+                  <SelectLabel>{group}</SelectLabel>
+                  {items.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               ))}
             </SelectContent>
           </Select>
@@ -164,10 +226,15 @@ export function HardwareSelector() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {RAM_OPTIONS.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.name}
-                  </SelectItem>
+                {Array.from(ramGroups.entries()).map(([group, items]) => (
+                  <SelectGroup key={group}>
+                    <SelectLabel>{group}</SelectLabel>
+                    {items.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 ))}
               </SelectContent>
             </Select>

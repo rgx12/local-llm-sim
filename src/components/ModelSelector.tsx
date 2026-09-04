@@ -2,11 +2,21 @@
 
 import { Layers } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { MODELS, QUANTIZATIONS, SAMPLE_PROMPTS } from "@/data/models";
 import { useSimulatorStore, useResolvedConfig } from "@/store/useSimulatorStore";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, groupBy } from "@/lib/utils";
+
+const modelGroups = groupBy(MODELS, (m) => m.family);
 
 function Field({
   tag,
@@ -68,10 +78,15 @@ export function ModelSelector() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {MODELS.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.name} ({m.paramsB}B)
-                </SelectItem>
+              {Array.from(modelGroups.entries()).map(([group, items]) => (
+                <SelectGroup key={group}>
+                  <SelectLabel>{group}</SelectLabel>
+                  {items.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name} ({m.paramsB}B)
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               ))}
             </SelectContent>
           </Select>
